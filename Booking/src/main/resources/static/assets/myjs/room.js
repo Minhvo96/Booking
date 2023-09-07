@@ -4,15 +4,21 @@ const tBody = document.getElementById("tBody");
 const eSelectType = document.getElementById('type');
 const ePagination = document.getElementById('pagination')
 const eSearch = document.getElementById('search');
+const eModalTitle = document.getElementById("staticBackdropLabel");
+const submitBtn = document.getElementById("submit-btn");
+// const eOptionsType = eSelectType.querySelectorAll("option");
+const formBody = document.getElementById('formBody');
 
+let roomSelected = {};
 let roomDetail;
 let pageable = {
     page: 1,
     sort: 'id,desc',
-    priceStart: 0,
-    priceEnd: 50000000,
     search: ''
 }
+let categories;
+let types;
+let rooms = [];
 
 roomForm.onsubmit = async (e) => {
     e.preventDefault();
@@ -24,33 +30,49 @@ roomForm.onsubmit = async (e) => {
         },
         idCategories: Array.from(eCheckBoxCategories)
             .filter(e => e.checked)
-            .map(e => e.value)
+            .map(e => e.value),
+        id: roomSelected.id
     }
 
-    const res = await fetch('/api/rooms', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-    })
-    if(res.ok){
-        alert('THanh cong')
+    let message = "Created"
+    if (roomSelected.id) {
+        await editRoom(data);
+        message = "Edited"
+    } else {
+        await createRoom(data)
     }
-    getList();
+
+    alert(message);
+    await renderTable();
+    $('#staticBackdrop').modal('hide');
+
 }
+
 function getDataFromForm(form) {
     // event.preventDefault()
     const data = new FormData(form);
     return Object.fromEntries(data.entries())
 }
-
+async function getCategoriesSelectOption() {
+    const res = await fetch('api/categories');
+    return await res.json();
+}
+async function getTypesSelectOption() {
+    const res = await fetch('api/types');
+    return await res.json();
+}
 async function getList() {
     const response = await fetch(`/api/rooms?page=${pageable.page - 1 || 0}&search=${pageable.search || ''}`);
-    //response co ca status ok hay ko header {} body
+    //response có status ok hoặc không, header và body
     //{page: 1, size: 10, content: []}
     //{ size: 15, content: [1,2,3]}
     //{page:1 , size: 15, content: [1,2,3]}
+
+    if (!response.ok) {
+        // Xử lý trường hợp không thành công ở đây, ví dụ: throw một lỗi hoặc trả về một giá trị mặc định
+        throw new Error("Failed to fetch data");
+    }
+
     const result = await response.json();
     pageable = {
         ...pageable,
@@ -58,9 +80,8 @@ async function getList() {
     };
     genderPagination();
     renderTBody(result.content);
-    console.log(result.content)
+    return result; // Trả về kết quả mà bạn đã lấy từ response.json()
     // addEventEditAndDelete();
-    //result tra ve data type map voi ben RestController
 }
 
 function renderTBody(items) {
@@ -156,7 +177,7 @@ function renderItemStr(item) {
                         data-bs-toggle="modal" data-bs-target="#staticBackdrop"
                         ><i class="bx bx-edit-alt me-1"></i> Edit</button
                             >
-                        <button class="dropdown-item" 
+                        <button class="dropdown-item" onclick="deleteRoom(${item.id})"
                         ><i class="bx bx-trash me-1"></i> Delete</button
                         >
               </div>
@@ -166,5 +187,123 @@ function renderItemStr(item) {
 }
 
 window.onload = async () => {
-    await getList();
+    categories = await getCategoriesSelectOption();
+    types = await getTypesSelectOption();
+    await renderTable()
+
+    renderForm(formBody, getDataInput());
 }
+function getDataInput() {
+    return [
+        {
+            label: 'Name',
+            name: 'name',
+            value: roomSelected.name,
+            required: true,
+            pattern: "^[A-Za-z ]{6,20}",
+            message: "Username must have minimum is 6 characters and maximum is 20 characters",
+        },
+        {
+            label: 'Type',
+            name: 'type',
+            value: roomSelected.typeId,
+            type: 'select',
+            required: true,
+            options: types,
+            message: 'Please choose Type'
+        },
+        {
+            label: 'Price',
+            name: 'price',
+            value: roomSelected.price,
+            pattern: "[1-9][0-9]{1,10}",
+            message: 'Price errors',
+            required: true
+        },
+        {
+            label: 'Description',
+            name: 'description',
+            value: roomSelected.description,
+            pattern: "^[A-Za-z ]{6,120}",
+            message: "Description must have minimum is 6 characters and maximum is 20 characters",
+            required: true
+        },
+
+    ];
+}
+async function renderTable() {
+    const pageable = await getList();
+    rooms = pageable.content;
+    renderTBody(rooms);
+    addEventEditAndDelete();
+}
+const findById = async (id) => {
+    const response = await fetch('/api/rooms/' + id);
+    return await response.json();
+}
+function showCreate() {
+    $('#staticBackdropLabel').text('Create Room');
+    clearForm();
+    renderForm(formBody, getDataInput())
+}
+async function showEdit(id) {
+    $('#staticBackdropLabel').text('Edit Room');
+    clearForm();
+    roomSelected = await findById(id);
+    roomSelected.categoryIds.forEach(idCategory => {
+        for (let i = 0; i < eCheckBoxCategories.length; i++) {
+            if (idCategory === +eCheckBoxCategories[i].value) {
+                eCheckBoxCategories[i].checked = true;
+            }
+        }
+    })
+    renderForm(formBody, getDataInput());
+}
+function clearForm() {
+    roomForm.reset();
+    roomSelected = {};
+}
+async function editRoom(data) {
+    const res = await fetch('/api/rooms/' + data.id, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+}
+async function deleteRoom(id) {
+    const res = await fetch('/api/rooms/' + id, {
+        method: 'DELETE',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(id)
+    });
+    if (res.ok) {
+        alert("Deleted");
+        await getList();
+    } else {
+        alert("Something went wrong!")
+    }
+}
+async function createRoom(data) {
+    const res = await fetch('/api/rooms', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    })
+}
+const addEventEditAndDelete = () => {
+    const eEdits = tBody.querySelectorAll('.edit');
+    const eDeletes = tBody.querySelectorAll('.delete');
+    for (let i = 0; i < eEdits.length; i++) {
+        console.log(eEdits[i].id)
+        eEdits[i].addEventListener('click', () => {
+            showEdit(eEdits[i].dataset.id);
+        })
+    }
+}
+
