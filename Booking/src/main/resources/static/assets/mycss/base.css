@@ -7,3 +7,7 @@
 .input-custom:invalid[focused="true"]~span {
     display: block;
 }
+
+#header-price i {
+    display: none;
+}

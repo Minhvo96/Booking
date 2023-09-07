@@ -1,5 +1,4 @@
 package com.example.booking.service.room;
-
 import com.example.booking.domain.Category;
 import com.example.booking.domain.Room;
 import com.example.booking.domain.RoomCategory;
@@ -15,7 +14,6 @@ import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
 import java.util.stream.Collectors;
 
