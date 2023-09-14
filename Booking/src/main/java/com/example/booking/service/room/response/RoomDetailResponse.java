@@ -18,4 +18,5 @@ public class RoomDetailResponse {
     private String description;
     private Long typeId;
     private List<Long> categoryIds;
+    private String avatarId;
 }

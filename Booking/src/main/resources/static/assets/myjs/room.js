@@ -10,6 +10,9 @@ const submitBtn = document.getElementById("submit-btn");
 const formBody = document.getElementById('formBody');
 const eHeaderPrice = document.getElementById('header-price')
 
+const BASE_URL_CLOUD_IMAGE = "https://res.cloudinary.com/dw3x98oui/image/upload";
+const BASE_SCALE_IMAGE = "c_limit,w_50,h_50,q_100";
+
 let roomSelected = {};
 let roomDetail;
 let pageable = {
@@ -24,6 +27,8 @@ let rooms = [];
 roomForm.onsubmit = async (e) => {
     e.preventDefault();
     let data = getDataFromForm(roomForm);
+
+    console.log("data", data)
     data = {
         ...data,
         type: {
@@ -35,8 +40,18 @@ roomForm.onsubmit = async (e) => {
         id: roomSelected.id
     }
 
-    if (roomSelected.id) {
-        await editRoom(data);
+
+    let formData = new FormData();
+    formData.append("name", data.name);
+    formData.append("price", data.price);
+    formData.append("description", data.description);
+    formData.append("idCategories", data.idCategories);
+    formData.append("type.id", data.type.id);
+
+    const file = document.getElementById('avatarCre').files[0];
+    formData.append("avatar", file );
+   if (roomSelected.id) {
+        await editRoomAvatar(formData);
         webToast.Success({
             status: 'Sửa thành công',
             message: '',
@@ -44,13 +59,14 @@ roomForm.onsubmit = async (e) => {
             align: 'topright'
         });
     } else {
-        await createRoom(data)
-        webToast.Success({
-            status: 'Thêm thành công',
-            message: '',
-            delay: 2000,
-            align: 'topright'
-        });
+        // await createRoom(data)
+        // webToast.Success({
+        //     status: 'Thêm thành công',
+        //     message: '',
+        //     delay: 2000,
+        //     align: 'topright'
+        // });
+        await createRoomAvatar(formData)
     }
     await renderTable();
     $('#staticBackdrop').modal('hide');
@@ -94,7 +110,8 @@ async function getList() {
 function renderTBody(items) {
     let str = '';
     items.forEach(e => {
-        str += renderItemStr(e);
+        const avatar = e.avatar;
+        str += renderItemStr(e, avatar);
     })
     tBody.innerHTML = str;
 }
@@ -174,10 +191,15 @@ const onLoadSort = () => {
         getList();
     }
 }
-function renderItemStr(item) {
+function renderItemStr(item, avatar) {
+    console.log(avatar)
+    let avatarURL = BASE_URL_CLOUD_IMAGE + "/" + BASE_SCALE_IMAGE + "/" + avatar.fileFolder + "/" + avatar.fileName;
     return `<tr>
                     <td>
                         ${item.id}
+                    </td>
+                    <td>
+                        <img src="${avatarURL}" alt="" />
                     </td>
                     <td title="${item.description}">
                         ${item.name}
@@ -251,7 +273,14 @@ function getDataInput() {
             message: "Description must have minimum is 6 characters and maximum is 20 characters",
             required: true
         },
-
+        {
+            label: 'Avatar',
+            name: 'avatar',
+            id: 'avatarCre',
+            value: roomSelected.avatar,
+            type: 'file',
+            required: true
+        },
     ];
 }
 async function renderTable() {
@@ -281,6 +310,7 @@ async function showEdit(id) {
         }
     })
     renderForm(formBody, getDataInput());
+    document.getElementById("avatar-room").src=roomSelected.avatarId;
 }
 function clearForm() {
     roomForm.reset();
@@ -328,6 +358,20 @@ async function createRoom(data) {
         body: JSON.stringify(data)
     })
 }
+async function createRoomAvatar(formData) {
+    const res = await fetch('/api/rooms', {
+        method: 'POST',
+        body: formData
+    })
+}
+
+async function editRoomAvatar(formData) {
+    const res = await fetch('/api/rooms', {
+        method: 'PUT',
+        body: formData
+    })
+}
+
 const addEventEditAndDelete = () => {
     const eEdits = tBody.querySelectorAll('.edit');
     const eDeletes = tBody.querySelectorAll('.delete');

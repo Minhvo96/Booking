@@ -1,6 +1,4 @@
 package com.example.booking.domain;
-
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -16,5 +14,4 @@ public class Type {
     private Long id;
 
     private String name;
-
 }

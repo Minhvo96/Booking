@@ -1,20 +1,26 @@
 package com.example.booking.service.room;
-import com.example.booking.domain.Category;
-import com.example.booking.domain.Room;
-import com.example.booking.domain.RoomCategory;
-import com.example.booking.domain.Type;
+import com.example.booking.domain.*;
+import com.example.booking.repository.RoomAvatarRepository;
 import com.example.booking.repository.RoomCategoryRepository;
 import com.example.booking.repository.RoomRepository;
+import com.example.booking.service.UploadService.UploadService;
 import com.example.booking.service.room.request.RoomSaveRequest;
 import com.example.booking.service.room.response.RoomDetailResponse;
 import com.example.booking.service.room.response.RoomListResponse;
+import com.example.booking.uploader.CloudinaryConfig;
+import com.example.booking.uploader.UploaderConfig;
 import com.example.booking.util.AppUtil;
+import com.example.booking.util.UploadUtils;
 import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @AllArgsConstructor
@@ -24,31 +30,58 @@ public class RoomService {
     private final RoomRepository roomRepository;
 
     private final RoomCategoryRepository roomCategoryRepository;
+    private final RoomAvatarRepository roomAvatarRepository;
+    private final UploadService uploadService;
+    private final UploadUtils uploadUtils;
 
-    public Page<RoomListResponse> getAll(Pageable pageable, String search) {
+//    public Page<RoomListResponse> getAll(Pageable pageable, String search) {
+//        search = "%" + search + "%";
+//        return roomRepository.searchEverything(search, pageable).map(room ->
+//                RoomListResponse.builder()
+//                        .id(room.getId())
+//                        .name(room.getName())
+//                        .description(room.getDescription())
+//                        .price(room.getPrice())
+//                        .type(room.getType().getName())
+//                        .roomCategory(
+//                                room.getRoomCategories().stream()
+//                                        .map(roomCategory -> roomCategory.getCategory().getName())
+//                                        .collect(Collectors.joining(", ")) // Chuyển danh sách thành chuỗi
+//                        )
+//                        .build());
+//    }
+
+    public Page<RoomListResponse> getAll(Pageable pageable, String search){
         search = "%" + search + "%";
-        return roomRepository.searchEverything(search, pageable).map(room ->
-                RoomListResponse.builder()
-                        .id(room.getId())
-                        .name(room.getName())
-                        .description(room.getDescription())
-                        .price(room.getPrice())
-                        .type(room.getType().getName())
-                        .roomCategory(
-                                room.getRoomCategories().stream()
-                                        .map(roomCategory -> roomCategory.getCategory().getName())
-                                        .collect(Collectors.joining(", ")) // Chuyển danh sách thành chuỗi
-                        )
-                        .build());
+        return roomRepository.searchEverything(search ,pageable).map(e -> {
+            var result = AppUtil.mapper.map(e, RoomListResponse.class);
+            result.setType(e.getType().getName());
+            result.setRoomCategory(e.getRoomCategories()
+                    .stream().map(c -> c.getCategory().getName())
+                    .collect(Collectors.joining(", ")));
+            return result;
+        });
     }
-    public void create(RoomSaveRequest request){
+    public void create(RoomSaveRequest request) throws IOException {
+
+        RoomAvatar roomAvatar = new RoomAvatar();
+        roomAvatarRepository.save(roomAvatar);
+
+        Map uploadResult =  uploadService.uploadImage(request.getAvatar(), uploadUtils.buildImageUploadParams(roomAvatar));
+
+        String fileUrl = (String) uploadResult.get("secure_url");
+        String fileFormat = (String) uploadResult.get("format");
+
+        roomAvatar.setFileName(roomAvatar.getId() + "." + fileFormat);
+        roomAvatar.setFileUrl(fileUrl);
+        roomAvatar.setFileFolder(UploadUtils.IMAGE_UPLOAD_FOLDER);
+        roomAvatar.setCloudId(roomAvatar.getFileFolder() + "/" + roomAvatar.getId());
+        roomAvatarRepository.save(roomAvatar);
+
         var room = AppUtil.mapper.map(request, Room.class);
+        room.setAvatar(roomAvatar);
         room = roomRepository.save(room);
-//        var roomCategories = new ArrayList<RoomCategory>();
-//        for (var id: request.getIdCategories()) {
-//            roomCategories.add(new RoomCategory(room, new Category(Long.valueOf(id))));
-//        }
-//        roomCategoryRepository.saveAll(roomCategories);
+
         Room finalRoom = room;
         roomCategoryRepository.saveAll(request
                 .getIdCategories()
@@ -56,9 +89,11 @@ public class RoomService {
                 .map(id -> new RoomCategory(finalRoom, new Category(Long.valueOf(id))))
                 .collect(Collectors.toList()));
     }
+
     public RoomDetailResponse findById(Long id){
         var room = roomRepository.findById(id).orElse(new Room());
         var result = AppUtil.mapper.map(room, RoomDetailResponse.class);
+        result.setAvatarId(room.getAvatar().getFileUrl());
         result.setTypeId(room.getType().getId());
         result.setCategoryIds(room
                 .getRoomCategories()
@@ -80,12 +115,19 @@ public class RoomService {
         roomCategoryRepository.saveAll(roomCategories);
         roomRepository.save(roomDb);
     }
-
     public Boolean delete(Long id) {
-        roomCategoryRepository.deleteRoomCategoriesByRoomId(id);
-        roomRepository.deleteById(id);
-        return true;
+        Optional<Room> roomOptional = roomRepository.findById(id);
+
+        if (roomOptional.isPresent()) {
+            roomCategoryRepository.deleteRoomCategoriesByRoomId(id);
+            roomRepository.deleteById(id);
+            return true;
+        } else {
+            return false; // Không tìm thấy phòng để xóa
+        }
     }
+
+
 
 
 

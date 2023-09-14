@@ -1,5 +1,4 @@
 package com.example.booking.controller.rest;
-
 import com.example.booking.repository.TypeRepository;
 import com.example.booking.service.response.SelectOptionResponse;
 import lombok.AllArgsConstructor;

@@ -1,6 +1,4 @@
 package com.example.booking.domain;
-
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -23,6 +21,9 @@ public class Room {
     private BigDecimal price;
 
     private String description;
+
+    @OneToOne
+    private RoomAvatar avatar;
 
     @ManyToOne
     @JoinColumn(name = "type_id")

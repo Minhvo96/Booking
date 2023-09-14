@@ -2,7 +2,7 @@ function createInput(props) {
     console.log(props)
     return `<div class="${props.classContainer || ''}">
                 <label class="${props.classLabel || ''} form-label">${props.label}</label>
-                <input class="input-custom form-control ${props.classInput || ''}" 
+                <input id="${props.id || ''}" class="input-custom form-control ${props.classInput || ''}" 
                 type="${props.type || 'text'}" name="${props.name}"
                 ${props.pattern ? `pattern="${props.pattern}"` : ""} 
                 value="${props.value || ''}"

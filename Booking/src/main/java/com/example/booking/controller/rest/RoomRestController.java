@@ -1,4 +1,5 @@
 package com.example.booking.controller.rest;
+
 import com.example.booking.service.room.RoomService;
 import com.example.booking.service.room.request.RoomSaveRequest;
 import com.example.booking.service.room.response.RoomDetailResponse;
@@ -11,15 +12,21 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
+
 @RestController
 @RequestMapping("api/rooms")
 @AllArgsConstructor
 public class RoomRestController {
 
     private final RoomService roomService;
-    
+
+    //    @PostMapping
+//    public void create(@RequestBody RoomSaveRequest request) throws IOException {
+//        roomService.create(request);
+//    }
     @PostMapping
-    public void create(@RequestBody RoomSaveRequest request){
+    public void createRoom(RoomSaveRequest request) throws IOException {
         roomService.create(request);
     }
 
@@ -30,15 +37,22 @@ public class RoomRestController {
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<RoomDetailResponse> findById(@PathVariable Long id){
-        return new ResponseEntity<>(roomService.findById(id), HttpStatus.OK);
+    public ResponseEntity<RoomDetailResponse> findById(@PathVariable Long id) {
+        RoomDetailResponse room = roomService.findById(id);
+        return new ResponseEntity<>(room, HttpStatus.OK);
     }
 
+    //    @PutMapping("{id}")
+//    public ResponseEntity<?> updateRoom(@RequestBody RoomSaveRequest request, @PathVariable Long id){
+//        roomService.update(request,id);
+//        return ResponseEntity.ok().build();
+//    }
     @PutMapping("{id}")
-    public ResponseEntity<?> updateRoom(@RequestBody RoomSaveRequest request, @PathVariable Long id){
-        roomService.update(request,id);
+    public ResponseEntity<?> updateRoom(RoomSaveRequest request, @PathVariable Long id) {
+        roomService.update(request, id);
         return ResponseEntity.ok().build();
     }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Boolean> delete(@PathVariable Long id) {
         Boolean isDeleted = roomService.delete(id);
@@ -48,7 +62,6 @@ public class RoomRestController {
             return ResponseEntity.notFound().build();
         }
     }
-
 
 
 }

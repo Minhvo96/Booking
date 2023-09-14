@@ -1,5 +1,4 @@
 package com.example.booking.domain;
-
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
