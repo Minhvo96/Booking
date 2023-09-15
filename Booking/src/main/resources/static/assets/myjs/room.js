@@ -40,33 +40,33 @@ roomForm.onsubmit = async (e) => {
         id: roomSelected.id
     }
 
-
     let formData = new FormData();
+    formData.append("id", data.id);
     formData.append("name", data.name);
     formData.append("price", data.price);
     formData.append("description", data.description);
     formData.append("idCategories", data.idCategories);
     formData.append("type.id", data.type.id);
 
-    const file = document.getElementById('avatarCre').files[0];
-    formData.append("avatar", file );
-   if (roomSelected.id) {
+    // const file = document.getElementById('avatarCre').files[0];
+    // formData.append("avatar", data.avatar);
+    console.log("data - room: ", data)
+    if (roomSelected.id) {
         await editRoomAvatar(formData);
         webToast.Success({
             status: 'Sửa thành công',
             message: '',
-            delay: 2000,
+            delay: 200,
             align: 'topright'
         });
     } else {
-        // await createRoom(data)
-        // webToast.Success({
-        //     status: 'Thêm thành công',
-        //     message: '',
-        //     delay: 2000,
-        //     align: 'topright'
-        // });
         await createRoomAvatar(formData)
+        webToast.Success({
+            status: 'Thêm thành công',
+            message: '',
+            delay: 2000,
+            align: 'topright'
+        });
     }
     await renderTable();
     $('#staticBackdrop').modal('hide');
@@ -139,24 +139,24 @@ const genderPagination = () => {
 
     const ePages = ePagination.querySelectorAll('li'); // lấy hết li mà con của ePagination
     const ePrevious = ePages[0];
-    const eNext = ePages[ePages.length-1]
+    const eNext = ePages[ePages.length - 1]
 
     ePrevious.onclick = () => {
-        if(pageable.page === 1){
+        if (pageable.page === 1) {
             return;
         }
         pageable.page -= 1;
         getList();
     }
     eNext.onclick = () => {
-        if(pageable.page === pageable.totalPages){
+        if (pageable.page === pageable.totalPages) {
             return;
         }
         pageable.page += 1;
         getList();
     }
     for (let i = 1; i < ePages.length - 1; i++) {
-        if(i === pageable.page){
+        if (i === pageable.page) {
             continue;
         }
         ePages[i].onclick = () => {
@@ -182,7 +182,7 @@ const onLoadSort = () => {
         const chevronUp = document.querySelector('.bx-chevron-up');
         chevronDown.style.display = 'block';
         chevronUp.style.display = 'none';
-        if(pageable.sortCustom?.includes('price') &&  pageable.sortCustom?.includes('desc')){
+        if (pageable.sortCustom?.includes('price') && pageable.sortCustom?.includes('desc')) {
             sort = 'price,asc';
             chevronUp.style.display = 'block';
             chevronDown.style.display = 'none';
@@ -231,13 +231,16 @@ function renderItemStr(item, avatar) {
                     </td>
                 </tr>`
 }
+
 window.onload = async () => {
     categories = await getCategoriesSelectOption();
     types = await getTypesSelectOption();
     await renderTable()
     onLoadSort();
     renderForm(formBody, getDataInput());
+
 }
+
 function getDataInput() {
     return [
         {
@@ -273,21 +276,28 @@ function getDataInput() {
             message: "Description must have minimum is 6 characters and maximum is 20 characters",
             required: true
         },
+        // {
+        //     label: 'Avatar',
+        //     id: 'avatarCre',
+        //     type: 'file',
+        //     required: true
+        // },
         {
-            label: 'Avatar',
+            // classContainer: "d-none",
+            label: 'ID Avatar',
             name: 'avatar',
-            id: 'avatarCre',
-            value: roomSelected.avatar,
-            type: 'file',
-            required: true
+            id: 'avatarCreated',
+            type: 'text', // Đổi type thành 'text'
+            readonly: true, // Sử dụng readonly thay vì disable
+            required: false
         },
     ];
 }
+
 async function renderTable() {
     const pageable = await getList();
     rooms = pageable.content;
     renderTBody(rooms);
-    addEventEditAndDelete();
 }
 const findById = async (id) => {
     const response = await fetch('/api/rooms/' + id);
@@ -297,6 +307,9 @@ function showCreate() {
     $('#staticBackdropLabel').text('Create Room');
     clearForm();
     renderForm(formBody, getDataInput())
+    document.getElementById("avatarCre").setAttribute("onchange", "previewImage(event);");
+    document.getElementById("avatar-room").src = '/assets/img/inputicon.png';
+    document.getElementById("avatarCreated").value = '';
 }
 async function showEdit(id) {
     $('#staticBackdropLabel').text('Edit Room');
@@ -310,8 +323,11 @@ async function showEdit(id) {
         }
     })
     renderForm(formBody, getDataInput());
-    document.getElementById("avatar-room").src=roomSelected.avatarId;
+    document.getElementById("avatarCre").setAttribute("onchange", "previewImage(event);");
+    document.getElementById("avatar-room").src = roomSelected.image.url;
+    document.getElementById("avatarCreated").value = roomSelected.image.id;
 }
+
 function clearForm() {
     roomForm.reset();
     roomSelected = {};
@@ -340,7 +356,7 @@ async function deleteRoom(id) {
             webToast.Success({
                 status: 'Xóa thành công',
                 message: '',
-                delay: 2000,
+                delay: 200,
                 align: 'topright'
             });
             await getList();
@@ -359,27 +375,79 @@ async function createRoom(data) {
     })
 }
 async function createRoomAvatar(formData) {
+   let avatar = document.getElementById("avatarCreated").value;
+   if(avatar!== ""){
+       formData.append("avatar", avatar)
+   }
     const res = await fetch('/api/rooms', {
         method: 'POST',
         body: formData
     })
 }
-
 async function editRoomAvatar(formData) {
-    const res = await fetch('/api/rooms', {
+    let avatar = document.getElementById("avatarCreated").value;
+    if(avatar!== ""){
+        formData.append("avatar", avatar)
+    }
+    const res = await fetch('/api/rooms/'+ formData.get("id"), {
         method: 'PUT',
         body: formData
     })
 }
 
-const addEventEditAndDelete = () => {
-    const eEdits = tBody.querySelectorAll('.edit');
-    const eDeletes = tBody.querySelectorAll('.delete');
-    for (let i = 0; i < eEdits.length; i++) {
-        console.log(eEdits[i].id)
-        eEdits[i].addEventListener('click', () => {
-            showEdit(eEdits[i].dataset.id);
-        })
+async function previewImage(evt) {
+    const reader = new FileReader();
+
+    // When the image is loaded, update the img element's src
+    reader.onload = function () {
+        const imgEle = document.getElementById("avatar-room");
+        imgEle.src = reader.result;
+    };
+
+    // Read the selected file as a data URL
+    reader.readAsDataURL(evt.target.files[0]);
+
+    const file = evt.target.files[0];
+
+    if (file) {
+        // Create a new FormData object and append the selected file
+        const formData = new FormData();
+        formData.append("avatar", file);
+        formData.append("fileType", "image");
+
+        try {
+            // Make a POST request to upload the image
+            const response = await fetch("/api/upload", {
+                method: "POST",
+                body: formData,
+            });
+
+            if (response.ok) {
+                // Parse the response JSON
+                const result = await response.json();
+
+                // Check if the response contains the expected property "imageId"
+                if (result.id) {
+                    // Get the imageUrl from the result
+                    const id = result.id;
+
+                    // Update the value of the "avatarCreated" input element with the imageUrl
+                    document.getElementById('avatarCreated').value = id;
+
+                    // Log the imageUrl for debugging
+                    console.log('Image id:', id);
+                } else {
+                    console.error('Image ID not found in the response.');
+                }
+            } else {
+                // Handle non-OK response (e.g., show an error message)
+                console.error('Failed to upload image:', response.statusText);
+            }
+        } catch (error) {
+            // Handle network or other errors
+            console.error('An error occurred:', error);
+        }
     }
 }
+
 

@@ -23,5 +23,5 @@ public class RoomSaveRequest {
 
     private SelectOptionRequest type;
 
-    private MultipartFile avatar;
+    private String avatar;
 }

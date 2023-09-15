@@ -1,5 +1,6 @@
 package com.example.booking.service.room.response;
 
+import com.example.booking.service.UploadService.response.ImageResponse;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -18,5 +19,5 @@ public class RoomDetailResponse {
     private String description;
     private Long typeId;
     private List<Long> categoryIds;
-    private String avatarId;
+    private ImageResponse image;
 }

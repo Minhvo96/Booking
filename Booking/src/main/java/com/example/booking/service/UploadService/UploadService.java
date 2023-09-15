@@ -1,5 +1,4 @@
 package com.example.booking.service.UploadService;
-
 import com.cloudinary.Cloudinary;
 import lombok.AllArgsConstructor;
 import lombok.NoArgsConstructor;

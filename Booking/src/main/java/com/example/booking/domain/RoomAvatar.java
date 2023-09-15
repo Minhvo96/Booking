@@ -36,6 +36,9 @@ public class RoomAvatar {
     @Column(name = "cloud_id")
     private String cloudId;
 
+    public RoomAvatar(String id) {
+        this.id = id;
+    }
     public RoomAvatarResponse roomAvatarResponse() {
         return new RoomAvatarResponse()
                 .setId(id)

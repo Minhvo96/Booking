@@ -6,7 +6,8 @@ function createInput(props) {
                 type="${props.type || 'text'}" name="${props.name}"
                 ${props.pattern ? `pattern="${props.pattern}"` : ""} 
                 value="${props.value || ''}"
-                ${props.required ? 'required' : ''} 
+                ${props.required ? 'required' : ''}
+                ${props.readonly ? 'readonly' : ''} 
                 />
                 <span class="error form-text ${props.classError}">${props.message}</span>
             </div>`
